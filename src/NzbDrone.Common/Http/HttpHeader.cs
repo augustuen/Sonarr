@@ -139,6 +139,18 @@ namespace NzbDrone.Common.Http
             }
         }
 
+        public string Authorization
+        {
+            get
+            {
+                return GetSingleValue("Authorization");
+            }
+            set
+            {
+                SetSingleValue("Authorization", value);
+            }
+        }
+
         public new IEnumerator<KeyValuePair<string, string>> GetEnumerator()
         {
             return AllKeys.SelectMany(GetValues, (k, c) => new KeyValuePair<string, string>(k, c)).ToList().GetEnumerator();
