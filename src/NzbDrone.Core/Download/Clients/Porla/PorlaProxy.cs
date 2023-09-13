@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using Newtonsoft.Json.Linq;
 using NLog;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
 
@@ -12,7 +13,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
     {
         string GetVersions(PorlaSettings settings);
         PorlaPreferences GetConfig(PorlaSettings settings);
-        List<PorlaTorrent> GetTorrents(PorlaSettings settings);
+        PorlaTorrent[] GetTorrents(PorlaSettings settings);
         bool IsTorrentLoaded(string hash, PorlaSettings settings);
         PorlaTorrentProperties GetTorrentProperties(string hash, PorlaSettings settings);
         List<PorlaTorrentFile> GetTorrentFiles(string hash, PorlaSettings settings);
@@ -60,11 +61,6 @@ namespace NzbDrone.Core.Download.Clients.Porla
             throw new System.NotImplementedException();
         }
 
-        public PorlaPreferences GetConfig(PorlaSettings settings)
-        {
-            throw new System.NotImplementedException();
-        }
-
         public List<PorlaTorrentFile> GetTorrentFiles(string hash, PorlaSettings settings)
         {
             throw new System.NotImplementedException();
@@ -79,13 +75,17 @@ namespace NzbDrone.Core.Download.Clients.Porla
             return result;
         }
 
-        public List<PorlaTorrent> GetTorrents(PorlaSettings settings)
+        public PorlaTorrent[] GetTorrents(PorlaSettings settings)
         {
             var filter = new Dictionary<string, object>();
-            filter.Add("category", settings.TvCategory.ToString());
-            var result = ProcessRequest<List<PorlaTorrent>>(settings, "torrents.list", filter);
+            if (settings.TvCategory.ToString().IsNotNullOrWhiteSpace())
+            {
+                filter.Add("category", settings.TvCategory.ToString());
+            }
 
-            return result;
+            var result = ProcessRequest<PorlaTorrentsResponse>(settings, "torrents.list", filter);
+
+            return result.Torrents;
         }
 
         public bool IsTorrentLoaded(string hash, PorlaSettings settings)
