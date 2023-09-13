@@ -26,6 +26,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public PorlaSettings()
         {
             Host = "localhost";
+            SavePath = "/data/downloads";
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -43,10 +44,13 @@ namespace NzbDrone.Core.Download.Clients.Porla
         [FieldDefinition(4, Label = "JWT Token", Type = FieldType.Textbox, HelpText = "Your generated authorization token")]
         public string Token { get; set; }
 
-        [FieldDefinition(5, Label = "Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Sonarr avoids conflicts with unrelated non-Sonarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(5, Label = "Save Path", Type = FieldType.Path, HelpText = "The path Porla will download files to")]
+        public string SavePath { get; set; }
+
+        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Sonarr avoids conflicts with unrelated non-Sonarr downloads. Using a category is optional, but strongly recommended.")]
         public string TvCategory { get; set; }
 
-        [FieldDefinition(6, Label = "Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "Category for Sonarr to set after it has imported the download. Sonarr will not remove the torrent if seeding has finished. Leave blank to keep same category.")]
+        [FieldDefinition(7, Label = "Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "Category for Sonarr to set after it has imported the download. Sonarr will not remove the torrent if seeding has finished. Leave blank to keep same category.")]
         public string TvImportedCategory { get; set; }
         public NzbDroneValidationResult Validate()
         {
