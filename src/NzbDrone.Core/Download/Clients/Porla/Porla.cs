@@ -92,7 +92,54 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            throw new NotImplementedException();
+            IEnumerable<PorlaTorrent> torrents;
+            torrents = _proxy.GetTorrents(Settings);
+
+            var items = new List<DownloadClientItem>();
+
+            foreach (var torrent in torrents)
+            {
+                if (torrent.Hash == null)
+                {
+                    continue;
+                }
+
+                var item = new DownloadClientItem();
+                item.DownloadId = torrent.Hash[0].ToUpper();
+                item.Title = torrent.Name;
+                item.Category = Settings.TvCategory;
+
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+
+                var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.SavePath));
+                item.OutputPath = outputPath + torrent.Name;
+                item.SeedRatio = torrent.Ratio;
+
+                try
+                {
+                    item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                }
+                catch (OverflowException ex)
+                {
+                    _logger.Debug(ex, "ETA for {0} is too long: {1}", torrent.Name, torrent.Eta);
+                    item.RemainingTime = TimeSpan.MaxValue;
+                }
+
+                item.TotalSize = torrent.Size;
+
+                if (torrent.State == 4 || torrent.State == 5)
+                {
+                    item.Status = DownloadItemStatus.Completed;
+                }
+                else
+                {
+                    item.Status = DownloadItemStatus.Downloading;
+                }
+
+                items.Add(item);
+            }
+
+            return items;
         }
 
         public override DownloadClientInfo GetStatus()

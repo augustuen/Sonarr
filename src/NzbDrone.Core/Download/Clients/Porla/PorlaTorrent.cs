@@ -1,11 +1,11 @@
 using Newtonsoft.Json;
-using Org.BouncyCastle.Math;
 
 namespace NzbDrone.Core.Download.Clients.Porla
 {
     public class PorlaTorrent
     {
-        public string Hash { get; set; } // Torrent hash
+        [JsonProperty(PropertyName = "info_hash")]
+        public string[] Hash { get; set; } // Torrent hash
 
         public string Name { get; set; } // Torrent name
 
@@ -13,9 +13,10 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         public double Progress { get; set; } // Torrent progress
 
-        public BigInteger Eta { get; set; } // Torrent ETA (seconds)
+        public int Eta { get; set; } // Torrent ETA (seconds)
 
-        public string State { get; set; } // Torrent State.
+        public int State { get; set; } // Torrent state, 4 = finished, 5 = seeding (100% of the torrent downloaded and active)
+        public int QueuePosition { get; set; } // Torrent's position in the queue. -1 = finished or seeding
 
         public string Label { get; set; } // TODO: Needed? Probably not
 
@@ -35,7 +36,8 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
     public class PorlaTorrentProperties
     {
-        public string Hash { get; set; }
+        [JsonProperty(PropertyName = "info_hash")]
+        public string[] Hash { get; set; }
 
         [JsonProperty(PropertyName = "save_path")] // Save path of the torrent
         public string SavePath { get; set; }
