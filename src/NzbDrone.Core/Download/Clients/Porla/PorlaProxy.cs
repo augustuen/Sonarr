@@ -40,7 +40,13 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public string GetVersions(PorlaSettings settings)
         {
             var filter = new Dictionary<string, object>();
-            var result = ProcessRequest<string>(settings, "torrents.list", filter);
+            var result = ProcessRequest<PorlaVersionsResponse>(settings, "sys.versions", filter);
+            return result.Porla.Version;
+        }
+
+        public PorlaPreferences GetConfig(PorlaSettings settings)
+        {
+            var result = ProcessRequest<PorlaPreferences>(settings, "session.settings.list");
             return result;
         }
 
@@ -150,6 +156,11 @@ namespace NzbDrone.Core.Download.Clients.Porla
             }
 
             return response.Result;
+        }
+
+        protected TResult ProcessRequest<TResult>(PorlaSettings settings, string method)
+        {
+            return ProcessRequest<TResult>(settings, method, new Dictionary<string, object>());
         }
 
         private JsonRpcResponse<TResult> ExecuteRequest<TResult>(JsonRpcRequestBuilder requestBuilder, string method, params object[] arguments)
