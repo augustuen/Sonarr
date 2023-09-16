@@ -9,17 +9,34 @@ namespace NzbDrone.Common.Http
 {
     public class JsonRpcRequestBuilder : HttpRequestBuilder
     {
+        public enum ParameterStructure
+        {
+            ByPosition,
+            ByName
+        }
+
         public static HttpAccept JsonRpcHttpAccept = new HttpAccept("application/json-rpc, application/json");
         public static string JsonRpcContentType = "application/json";
 
         public string JsonMethod { get; private set; }
         public List<object> JsonParameters { get; private set; }
 
+        private ParameterStructure _parameterStructure;
+
         public JsonRpcRequestBuilder(string baseUrl)
             : base(baseUrl)
         {
             Method = HttpMethod.Post;
             JsonParameters = new List<object>();
+            _parameterStructure = ParameterStructure.ByPosition;
+        }
+
+        public JsonRpcRequestBuilder(string baseUrl, ParameterStructure parameterStructure)
+            : base(baseUrl)
+        {
+            Method = HttpMethod.Post;
+            JsonParameters = new List<object>();
+            _parameterStructure = parameterStructure;
         }
 
         public JsonRpcRequestBuilder(string baseUrl, string method, IEnumerable<object> parameters)
@@ -28,6 +45,7 @@ namespace NzbDrone.Common.Http
             Method = HttpMethod.Post;
             JsonMethod = method;
             JsonParameters = parameters.ToList();
+            _parameterStructure = ParameterStructure.ByPosition;
         }
 
         public override HttpRequestBuilder Clone()
@@ -62,10 +80,20 @@ namespace NzbDrone.Common.Http
             var message = new Dictionary<string, object>();
             message["jsonrpc"] = "2.0";
             message["method"] = JsonMethod;
-            message["params"] = parameterData;
-            message["id"] = CreateNextId();
 
+            if (_parameterStructure == ParameterStructure.ByName)
+            {
+                message["params"] = parameterData[0];
+            }
+            else
+            {
+                message["params"] = parameterData;
+            }
+
+            message["id"] = CreateNextId();
             request.SetContent(message.ToJson());
+
+            var output = message.ToJson();
 
             if (request.ContentSummary == null)
             {
