@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
                 }
 
                 var item = new DownloadClientItem();
-                item.DownloadId = torrent.Hash[0].ToUpper();
+                item.DownloadId = torrent.Hash[0].ToUpper() ?? torrent.Hash[1].ToUpper();
                 item.Title = torrent.Name;
                 item.Category = Settings.TvCategory;
 
@@ -149,17 +149,19 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
         {
-            throw new NotImplementedException();
+            _proxy.RemoveTorrent(item.DownloadId, deleteData, Settings);
         }
 
         protected override string AddFromMagnetLink(RemoteEpisode remoteEpisode, string hash, string magnetLink)
         {
-            throw new NotImplementedException();
+            var infoHash = _proxy.AddTorrentFromUrl(magnetLink, null, Settings);
+            return hash ?? infoHash;
         }
 
         protected override string AddFromTorrentFile(RemoteEpisode remoteEpisode, string hash, string filename, byte[] fileContent)
         {
-            throw new NotImplementedException();
+            var infoHash = _proxy.AddTorrentFromFile(filename, fileContent, null, Settings);
+            return hash ?? infoHash;
         }
     }
 }

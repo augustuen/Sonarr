@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Newtonsoft.Json.Linq;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
 
@@ -14,17 +14,14 @@ namespace NzbDrone.Core.Download.Clients.Porla
         string GetVersions(PorlaSettings settings);
         PorlaPreferences GetConfig(PorlaSettings settings);
         PorlaTorrent[] GetTorrents(PorlaSettings settings);
-        bool IsTorrentLoaded(string hash, PorlaSettings settings);
         PorlaTorrentProperties GetTorrentProperties(string hash, PorlaSettings settings);
         List<PorlaTorrentFile> GetTorrentFiles(string hash, PorlaSettings settings);
-        void AddTorrentFromUrl(string torrentUrl, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings);
-        void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings);
+        string AddTorrentFromUrl(string torrentUrl, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings);
+        string AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings);
 
         void RemoveTorrent(string hash, bool removeData, PorlaSettings settings);
         void SetTorrentSeedingConfiguration(string hash, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings);
-        void MoveTorrentToTopInQuee(string hash, PorlaSettings settings);
-        void PauseTorrent(string hash, PorlaSettings settings);
-        void ResumeTorrent(string hash, PorlaSettings settings);
+        void MoveTorrentToTopInQueue(string hash, PorlaSettings settings);
     }
 
     public class PorlaProxy : IPorlaProxy
@@ -41,7 +38,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public string GetVersions(PorlaSettings settings)
         {
             var filter = new Dictionary<string, object>();
-            var result = ProcessRequest<PorlaVersionsResponse>(settings, "sys.versions", filter);
+            var result = ProcessRequest<PorlaResponse>(settings, "sys.versions", filter);
             return result.Porla.Version;
         }
 
@@ -51,61 +48,84 @@ namespace NzbDrone.Core.Download.Clients.Porla
             return result;
         }
 
-        public void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings)
+        public string AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings)
         {
-            throw new System.NotImplementedException();
+            var parameters = new
+            {
+                name = fileName,
+                save_path = settings.SavePath,
+                category = settings.TvCategory ?? "",
+                ti = Convert.ToBase64String(fileContent)
+            };
+
+            // ProcessRequest<PorlaResponse>(settings, "torrents.add", parameters);
+            var result = ProcessRequest<PorlaResponse>(settings, "torrents.add", parameters);
+            return result.InfoHash;
         }
 
-        public void AddTorrentFromUrl(string torrentUrl, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings)
+        public string AddTorrentFromUrl(string torrentUrl, TorrentSeedConfiguration seedConfiguration, PorlaSettings settings)
         {
-            throw new System.NotImplementedException();
+            var parameters = new
+            {
+                magnet_uri = torrentUrl,
+                save_path = settings.SavePath,
+                category = settings.TvCategory ?? ""
+            };
+
+            var result = ProcessRequest<PorlaResponse>(settings, "torrents.add", parameters);
+            return result.InfoHash;
         }
 
         public List<PorlaTorrentFile> GetTorrentFiles(string hash, PorlaSettings settings)
         {
-            throw new System.NotImplementedException();
+            var parameters = new
+            {
+                info_hash = hash
+            };
+            var result = ProcessRequest<PorlaResponse>(settings, "torrents.files.list", parameters);
+            return result.Files.ToList<PorlaTorrentFile>();
         }
 
         public PorlaTorrentProperties GetTorrentProperties(string hash, PorlaSettings settings)
         {
-            var filter = new Dictionary<string, object>();
-            filter.Add("info_hash", hash);
-
-            var result = ProcessRequest<PorlaTorrentProperties>(settings, "torrents.list", filter);
-            return result;
+            throw new NotImplementedException();
         }
 
         public PorlaTorrent[] GetTorrents(PorlaSettings settings)
         {
-            var filter = new Dictionary<string, object>();
-            if (settings.TvCategory.ToString().IsNotNullOrWhiteSpace())
+            var parameters = new
             {
-                filter.Add("category", settings.TvCategory.ToString());
-            }
-
-            var result = ProcessRequest<PorlaTorrentsResponse>(settings, "torrents.list", filter);
+                filters = new
+                {
+                    category = settings.TvCategory.ToString() ?? ""
+                }
+            };
+            var result = ProcessRequest<PorlaResponse>(settings, "torrents.list", parameters);
 
             return result.Torrents;
         }
 
-        public bool IsTorrentLoaded(string hash, PorlaSettings settings)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void MoveTorrentToTopInQuee(string hash, PorlaSettings settings)
+        public void MoveTorrentToTopInQueue(string hash, PorlaSettings settings)
         {
             throw new System.NotImplementedException();
         }
 
         public void PauseTorrent(string hash, PorlaSettings settings)
         {
-            throw new System.NotImplementedException();
+            var parameters = new
+            {
+                info_hash = hash
+            };
+            var result = ProcessRequest<PorlaTorrentsResponse>(settings, "torrrents.pause", parameters);
+            var test = result.ToString();
         }
 
         public void RemoveTorrent(string hash, bool removeData, PorlaSettings settings)
         {
-            throw new System.NotImplementedException();
+            var parameters = new Dictionary<string, object>();
+            parameters.Add("info_hashes", new string[] { hash, null });
+            parameters.Add("remove_data", removeData);
+            ProcessRequest<object>(settings, "torrents.remove", parameters);
         }
 
         public void ResumeTorrent(string hash, PorlaSettings settings)
@@ -127,7 +147,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
         {
             var url = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, settings.UrlBase);
 
-            var requestBuilder = new JsonRpcRequestBuilder(url);
+            var requestBuilder = new JsonRpcRequestBuilder(url, JsonRpcRequestBuilder.ParameterStructure.ByName);
             requestBuilder.LogResponseContent = true;
 
             requestBuilder.Resource("/api/v1/jsonrpc");
