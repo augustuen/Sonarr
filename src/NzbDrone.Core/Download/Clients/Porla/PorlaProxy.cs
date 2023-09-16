@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
         {
             var url = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, settings.UrlBase);
 
-            var requestBuilder = new JsonRpcRequestBuilder(url);
+            var requestBuilder = new JsonRpcRequestBuilder(url, JsonRpcRequestBuilder.ParameterStructure.ByName);
             requestBuilder.LogResponseContent = true;
 
             requestBuilder.Resource("/api/v1/jsonrpc");
