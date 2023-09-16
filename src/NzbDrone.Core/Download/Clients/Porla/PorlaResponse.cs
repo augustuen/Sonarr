@@ -1,7 +1,21 @@
+using Newtonsoft.Json;
+
 namespace NzbDrone.Core.Download.Clients.Porla
 {
     public class PorlaResponse
     {
+        [JsonProperty(PropertyName = "jsonrpc")]
+        public string JsonRPC { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public PorlaVersion Porla;
+        public PorlaTorrent[] Torrents;
+        public int TorrentsTotal { get; set; }
+        public int TorrentsTotalUnfiltered { get; set; }
+
+        public PorlaTorrentFile[] Files;
+
+        public string InfoHash { get; set; }
     }
 
     public class PorlaVersionsResponse
