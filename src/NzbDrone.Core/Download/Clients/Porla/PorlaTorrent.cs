@@ -54,6 +54,9 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
     public class PorlaTorrentFile
     {
+        public bool AbsolutePath { get; set; }
         public string Name { get; set; }
+        public string Path { get; set; }
+        public int Size { get; set; }
     }
 }
