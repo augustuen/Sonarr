@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace NzbDrone.Core.Download.Clients.Porla
@@ -16,6 +17,10 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public PorlaTorrentFile[] Files;
 
         public string InfoHash { get; set; }
+
+        [JsonProperty(PropertyName = "result")]
+        public Dictionary<string, object> Result;
+        public PorlaPreset Default;
     }
 
     public class PorlaVersionsResponse

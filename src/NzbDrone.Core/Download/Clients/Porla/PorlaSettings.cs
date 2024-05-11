@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
@@ -23,6 +24,8 @@ namespace NzbDrone.Core.Download.Clients.Porla
     {
         private static readonly PorlaSettingsValidator Validator = new PorlaSettingsValidator();
 
+        public IDictionary<string, PorlaPreset> PresetsList;
+
         public PorlaSettings()
         {
             Host = "localhost";
@@ -44,13 +47,16 @@ namespace NzbDrone.Core.Download.Clients.Porla
         [FieldDefinition(4, Label = "JWT Token", Type = FieldType.Textbox, HelpText = "Your generated authorization token")]
         public string Token { get; set; }
 
-        [FieldDefinition(5, Label = "Save Path", Type = FieldType.Path, HelpText = "The path Porla will download files to")]
+        [FieldDefinition(5, Label = "Preset", Type = FieldType.Select, SelectOptionsProviderAction = "getPresets", HelpText = "Porla preset to use for downloads")]
+        public IEnumerable<string> Presets { get; set; }
+
+        [FieldDefinition(6, Label = "Save Path", Type = FieldType.Path, HelpText = "The path Porla will download files to")]
         public string SavePath { get; set; }
 
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Sonarr avoids conflicts with unrelated non-Sonarr downloads. Using a category is optional, but strongly recommended.")]
+        [FieldDefinition(7, Label = "Category", Type = FieldType.Textbox, HelpText = "Adding a category specific to Sonarr avoids conflicts with unrelated non-Sonarr downloads. Using a category is optional, but strongly recommended.")]
         public string TvCategory { get; set; }
 
-        [FieldDefinition(7, Label = "Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "Category for Sonarr to set after it has imported the download. Sonarr will not remove the torrent if seeding has finished. Leave blank to keep same category.")]
+        [FieldDefinition(8, Label = "Post-Import Category", Type = FieldType.Textbox, Advanced = true, HelpText = "Category for Sonarr to set after it has imported the download. Sonarr will not remove the torrent if seeding has finished. Leave blank to keep same category.")]
         public string TvImportedCategory { get; set; }
         public NzbDroneValidationResult Validate()
         {
