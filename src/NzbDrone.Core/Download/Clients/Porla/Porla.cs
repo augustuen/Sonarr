@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using FluentValidation.Results;
 using NLog;
@@ -140,6 +141,34 @@ namespace NzbDrone.Core.Download.Clients.Porla
             }
 
             return items;
+        }
+
+        public override object RequestAction(string action, IDictionary<string, string> query)
+        {
+            if (Settings.Token.IsNullOrWhiteSpace())
+            {
+                return new
+                {
+                    devices = new List<object>()
+                };
+            }
+
+            if (action == "getPresets")
+            {
+                var presets = _proxy.GetPresets(Settings);
+                Settings.PresetsList = presets;
+                return new
+                {
+                    options = presets.OrderBy(d => d.Key)
+                    .Select(d => new
+                    {
+                        value = d.Key,
+                        name = d.Key
+                    })
+                };
+            }
+
+            return base.RequestAction(action, query);
         }
 
         public override DownloadClientInfo GetStatus()

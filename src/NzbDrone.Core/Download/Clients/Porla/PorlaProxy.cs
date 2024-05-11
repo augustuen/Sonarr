@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
     {
         string GetVersions(PorlaSettings settings);
         PorlaPreferences GetConfig(PorlaSettings settings);
+        IDictionary<string, PorlaPreset> GetPresets(PorlaSettings settings);
         PorlaTorrent[] GetTorrents(PorlaSettings settings);
         PorlaTorrentProperties GetTorrentProperties(string hash, PorlaSettings settings);
         List<PorlaTorrentFile> GetTorrentFiles(string hash, PorlaSettings settings);
@@ -103,6 +104,12 @@ namespace NzbDrone.Core.Download.Clients.Porla
             var result = ProcessRequest<PorlaResponse>(settings, "torrents.list", parameters);
 
             return result.Torrents;
+        }
+
+        public IDictionary<string, PorlaPreset> GetPresets(PorlaSettings settings)
+        {
+            var result = ProcessRequest<IDictionary<string, PorlaPreset>>(settings, "presets.list");
+            return result;
         }
 
         public void MoveTorrentToTopInQueue(string hash, PorlaSettings settings)
