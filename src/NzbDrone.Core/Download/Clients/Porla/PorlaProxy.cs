@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using NLog;
 using NzbDrone.Common.Http;
@@ -154,11 +155,11 @@ namespace NzbDrone.Core.Download.Clients.Porla
         {
             var url = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, settings.UrlBase);
 
-            var requestBuilder = new JsonRpcRequestBuilder(url, JsonRpcRequestBuilder.ParameterStructure.ByName);
+            var requestBuilder = new JsonRpcRequestBuilder(url);
             requestBuilder.LogResponseContent = true;
 
             requestBuilder.Resource("/api/v1/jsonrpc");
-            requestBuilder.SetHeader("Authorization", "Bearer " + settings.Token);
+            requestBuilder.SetHeader("Authorization", "Bearer " + settings.InfiniteJWT);
             requestBuilder.SetHeader("Accept", "application/json");
             requestBuilder.PostProcess += r => r.RequestTimeout = TimeSpan.FromSeconds(15); // WTF does this do?
 
@@ -167,9 +168,52 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         protected TResult ProcessRequest<TResult>(PorlaSettings settings, string method, params object[] arguments)
         {
-            var requestBuilder = BuildRequest(settings);
+            var jwt = settings.InfiniteJWT ??= string.Empty;
+            var apiurl = settings.ApiUrl ??= string.Empty;
+
+            var baseUrl = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, settings.ApiUrl);
+            var requestBuilder = new JsonRpcRequestBuilder(baseUrl, method, true, arguments)
+                .Resource(apiurl)
+                .SetHeader("Authorization", $"Bearer {jwt}");
+
+            requestBuilder.LogResponseContent = true;
+
+            var httpRequest = requestBuilder.Build();
 
             var response = ExecuteRequest<TResult>(requestBuilder, method, arguments);
+            _logger.Debug(httpRequest.ToString());
+            HttpResponse response;
+
+            try
+            {
+                response = _httpClient.Execute(httpRequest);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new DownloadClientException("Unable to Connect to Porla, please check your settings", ex);
+            }
+            catch (HttpException ex)
+            {
+                throw new DownloadClientException("Unable to connect to Porla, please check your settings", ex);
+            }
+            catch (WebException ex)
+            {
+                if (ex.Status == WebExceptionStatus.TrustFailure)
+                {
+                    throw new DownloadClientUnavailableException("Unable to connect to Porla, certificate validation failed.", ex);
+                }
+
+                throw new DownloadClientUnavailableException("Unable to connect to Prola, please check your settings", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Unknown Connection Error");
+                throw new DownloadClientException("Unable to connect to Porla, Unknown error", ex);
+            }
+
+
+            var result = Json.Deserialize()
+            
 
             // TODO: Implement error handling
             if (response.Error != null)
