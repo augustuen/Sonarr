@@ -7,7 +7,9 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
@@ -24,8 +26,10 @@ namespace NzbDrone.Core.Download.Clients.Porla
                      IConfigService configService,
                      IDiskProvider diskProvider,
                      IRemotePathMappingService remotePathMappingService,
+                     ILocalizationService localizationService,
+                     IBlocklistService blocklistService,
                      Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
         }
@@ -110,7 +114,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
                 item.Title = torrent.Name;
                 item.Category = Settings.TvCategory;
 
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false); // TODO: address "Has post-import category"
 
                 var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.SavePath));
                 item.OutputPath = outputPath + torrent.Name;
@@ -145,7 +149,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         public override object RequestAction(string action, IDictionary<string, string> query)
         {
-            if (Settings.Token.IsNullOrWhiteSpace())
+            if (Settings.InfiniteJWT.IsNullOrWhiteSpace())
             {
                 return new
                 {
