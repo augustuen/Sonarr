@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
         {
             RuleFor(c => c.Host).ValidHost();
             RuleFor(c => c.Port).InclusiveBetween(1, 65535);
-            RuleFor(c => c.ApiUrl).ValidUrlBase().When(c => c.ApiUrl.IsNotNullOrWhiteSpace());
+            RuleFor(c => c.UrlBase).ValidUrlBase().When(c => c.UrlBase.IsNotNullOrWhiteSpace());
 
             RuleFor(c => c.TvCategory).Matches(@"^([^\\\/](\/?[^\\\/])*)?$").WithMessage(@"Can not contain '\', '//', or start/end with '/'");
             RuleFor(c => c.TvImportedCategory).Matches(@"^([^\\\/](\/?[^\\\/])*)?$").WithMessage(@"Can not contain '\', '//', or start/end with '/'");
@@ -29,9 +29,6 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public PorlaSettings()
         {
             Host = "localhost";
-            Port = 1337;
-            ApiUrl = "/api/v1/jsonrpc";
-            TvCategory = "tv-sonarr";
             SavePath = "/data/downloads";
         }
 
@@ -45,10 +42,10 @@ namespace NzbDrone.Core.Download.Clients.Porla
         public bool UseSsl { get; set; }
 
         [FieldDefinition(3, Label = "Url Base", Type = FieldType.Textbox, Advanced = true, HelpText = "Adds a prefix to the Porla url, e.g. http://[host]:[port]/[urlBase]/api.")]
-        public string ApiUrl { get; set; }
+        public string UrlBase { get; set; }
 
         [FieldDefinition(4, Label = "JWT Token", Type = FieldType.Textbox, HelpText = "Your generated authorization token")]
-        public string InfiniteJWT { get; set; }
+        public string Token { get; set; }
 
         [FieldDefinition(5, Label = "Preset", Type = FieldType.Select, SelectOptionsProviderAction = "getPresets", HelpText = "Porla preset to use for downloads")]
         public IEnumerable<string> Presets { get; set; }

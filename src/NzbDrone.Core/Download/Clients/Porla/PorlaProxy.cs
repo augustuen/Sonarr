@@ -150,23 +150,26 @@ namespace NzbDrone.Core.Download.Clients.Porla
             return; // TODO: Porla doesn't have a built-in ratio manager. Consider making our own
         }
 
-        protected TResult ProcessRequest<TResult>(PorlaSettings settings, string method, params object[] arguments)
+        private JsonRpcRequestBuilder BuildRequest(PorlaSettings settings)
         {
-            var jwt = settings.InfiniteJWT ??= string.Empty;
-            var apiurl = settings.ApiUrl ??= string.Empty;
+            var url = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, settings.UrlBase);
 
-            var baseUrl = HttpRequestBuilder.BuildBaseUrl(settings.UseSsl, settings.Host, settings.Port, "");
-            var requestBuilder = (JsonRpcRequestBuilder)new JsonRpcRequestBuilder(baseUrl, method, true, arguments);
-            requestBuilder.SetHeader("Accept", "application/json")
-                .Resource(apiurl)
-                .SetHeader("Authorization", $"Bearer {jwt}");
-
+            var requestBuilder = new JsonRpcRequestBuilder(url, JsonRpcRequestBuilder.ParameterStructure.ByName);
             requestBuilder.LogResponseContent = true;
 
-            var httpRequest = requestBuilder.Build();
+            requestBuilder.Resource("/api/v1/jsonrpc");
+            requestBuilder.SetHeader("Authorization", "Bearer " + settings.Token);
+            requestBuilder.SetHeader("Accept", "application/json");
+            requestBuilder.PostProcess += r => r.RequestTimeout = TimeSpan.FromSeconds(15); // WTF does this do?
+
+            return requestBuilder;
+        }
+
+        protected TResult ProcessRequest<TResult>(PorlaSettings settings, string method, params object[] arguments)
+        {
+            var requestBuilder = BuildRequest(settings);
 
             var response = ExecuteRequest<TResult>(requestBuilder, method, arguments);
-            _logger.Debug(httpRequest.ToString());
 
             // TODO: Implement error handling
             if (response.Error != null)

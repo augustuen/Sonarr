@@ -9,20 +9,34 @@ namespace NzbDrone.Common.Http
 {
     public class JsonRpcRequestBuilder : HttpRequestBuilder
     {
+        public enum ParameterStructure
+        {
+            ByPosition,
+            ByName
+        }
+
         public static HttpAccept JsonRpcHttpAccept = new HttpAccept("application/json-rpc, application/json");
         public static string JsonRpcContentType = "application/json";
 
         public string JsonMethod { get; private set; }
         public List<object> JsonParameters { get; private set; }
 
-        public bool JsonParametersAsObject { get; private set; }
+        private ParameterStructure _parameterStructure;
 
         public JsonRpcRequestBuilder(string baseUrl)
             : base(baseUrl)
         {
             Method = HttpMethod.Post;
             JsonParameters = new List<object>();
-            JsonParametersAsObject = false;
+            _parameterStructure = ParameterStructure.ByPosition;
+        }
+
+        public JsonRpcRequestBuilder(string baseUrl, ParameterStructure parameterStructure)
+            : base(baseUrl)
+        {
+            Method = HttpMethod.Post;
+            JsonParameters = new List<object>();
+            _parameterStructure = parameterStructure;
         }
 
         public JsonRpcRequestBuilder(string baseUrl, string method, IEnumerable<object> parameters)
@@ -31,16 +45,7 @@ namespace NzbDrone.Common.Http
             Method = HttpMethod.Post;
             JsonMethod = method;
             JsonParameters = parameters.ToList();
-            JsonParametersAsObject = false;
-        }
-
-        public JsonRpcRequestBuilder(string baseUrl, string method, bool convertParameterToObject, IEnumerable<object> parameters)
-            : base(baseUrl)
-        {
-            Method = HttpMethod.Post;
-            JsonMethod = method;
-            JsonParameters = parameters.ToList();
-            JsonParametersAsObject = convertParameterToObject;
+            _parameterStructure = ParameterStructure.ByPosition;
         }
 
         public override HttpRequestBuilder Clone()
@@ -82,7 +87,16 @@ namespace NzbDrone.Common.Http
             var message = new Dictionary<string, object>();
             message["jsonrpc"] = "2.0";
             message["method"] = JsonMethod;
-            message["params"] = paramFinal;
+
+            if (_parameterStructure == ParameterStructure.ByName)
+            {
+                message["params"] = parameterData[0];
+            }
+            else
+            {
+                message["params"] = parameterData;
+            }
+
             message["id"] = CreateNextId();
             request.SetContent(message.ToJson());
 
