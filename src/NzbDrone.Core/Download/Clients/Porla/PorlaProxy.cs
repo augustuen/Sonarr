@@ -98,7 +98,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
             {
                 filters = new
                 {
-                    category = settings.TvCategory.ToString() ?? ""
+                    category = settings.TvCategory ?? ""
                 }
             };
             var result = ProcessRequest<PorlaResponse>(settings, "torrents.list", parameters);

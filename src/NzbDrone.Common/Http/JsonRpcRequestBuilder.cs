@@ -77,24 +77,17 @@ namespace NzbDrone.Common.Http
                 ConvertParameter(JsonParameters[i], out parameterAsArray[i], out parameterSummary[i]);
             }
 
-            object paramFinal = parameterAsArray;
-
-            if (JsonParametersAsObject)
-            {
-                paramFinal = parameterAsArray[0];
-            }
-
             var message = new Dictionary<string, object>();
             message["jsonrpc"] = "2.0";
             message["method"] = JsonMethod;
 
             if (_parameterStructure == ParameterStructure.ByName)
             {
-                message["params"] = parameterData[0];
+                message["params"] = JsonParameters[0];
             }
             else
             {
-                message["params"] = parameterData;
+                message["params"] = JsonParameters;
             }
 
             message["id"] = CreateNextId();

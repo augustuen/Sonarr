@@ -2,6 +2,17 @@ using Newtonsoft.Json;
 
 namespace NzbDrone.Core.Download.Clients.Porla
 {
+    public enum PorlaTorrentState
+    {
+            Unknown,
+            CheckingFiles,
+            DownloadingMetadata,
+            Downloading,
+            Finished,
+            Seeding,
+            CheckingResumeData
+    }
+
     public class PorlaTorrent
     {
         [JsonProperty(PropertyName = "info_hash")]
@@ -15,7 +26,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         public int Eta { get; set; } // Torrent ETA (seconds)
 
-        public int State { get; set; } // Torrent state, 4 = finished, 5 = seeding (100% of the torrent downloaded and active)
+        public PorlaTorrentState State { get; set; } // Torrent state, 4 = finished, 5 = seeding (100% of the torrent downloaded and active)
         public int QueuePosition { get; set; } // Torrent's position in the queue. -1 = finished or seeding
 
         public string Label { get; set; } // TODO: Needed? Probably not
@@ -32,6 +43,9 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
         [JsonProperty(PropertyName = "seeding_time")] // TODO: Fix property name
         public long? SeedingTime { get; set; }
+
+        [JsonProperty(PropertyName = "total_done")]
+        public long TotalDone { get; set; }
     }
 
     public class PorlaTorrentProperties

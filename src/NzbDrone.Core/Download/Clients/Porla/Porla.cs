@@ -7,7 +7,9 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
@@ -24,8 +26,10 @@ namespace NzbDrone.Core.Download.Clients.Porla
                      IConfigService configService,
                      IDiskProvider diskProvider,
                      IRemotePathMappingService remotePathMappingService,
+                     ILocalizationService localizationService,
+                     IBlocklistService blocklistService,
                      Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
         }
@@ -110,7 +114,7 @@ namespace NzbDrone.Core.Download.Clients.Porla
                 item.Title = torrent.Name;
                 item.Category = Settings.TvCategory;
 
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
 
                 var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.SavePath));
                 item.OutputPath = outputPath + torrent.Name;
@@ -118,7 +122,14 @@ namespace NzbDrone.Core.Download.Clients.Porla
 
                 try
                 {
-                    item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    if (torrent.Eta < 0)
+                    {
+                        item.RemainingTime = null;
+                    }
+                    else
+                    {
+                        item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    }
                 }
                 catch (OverflowException ex)
                 {
@@ -127,14 +138,28 @@ namespace NzbDrone.Core.Download.Clients.Porla
                 }
 
                 item.TotalSize = torrent.Size;
+                item.RemainingSize = torrent.Size - torrent.TotalDone;
 
-                if (torrent.State == 4 || torrent.State == 5)
+                switch (torrent.State)
                 {
-                    item.Status = DownloadItemStatus.Completed;
+                    case PorlaTorrentState.DownloadingMetadata:
+                    case PorlaTorrentState.CheckingFiles:
+                    case PorlaTorrentState.CheckingResumeData:
+                        item.Status = DownloadItemStatus.Queued;
+                        break;
+                    case PorlaTorrentState.Finished:
+                    case PorlaTorrentState.Seeding:
+                        item.Status = DownloadItemStatus.Completed;
+                        break;
+                    default:
+                        item.Status = DownloadItemStatus.Downloading;
+                        break;
                 }
-                else
+
+                if (torrent.Eta == -1 && item.Status == DownloadItemStatus.Downloading)
                 {
-                    item.Status = DownloadItemStatus.Downloading;
+                    item.Status = DownloadItemStatus.Warning;
+                    item.Message = _localizationService.GetLocalizedString("DownloadClientQbittorrentTorrentStateStalled");
                 }
 
                 items.Add(item);
